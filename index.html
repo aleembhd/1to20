@@ -1397,11 +1397,10 @@
                 const names = cachedNames || {};
                 
                 // Filter out excluded buttons before creating HTML
-                const buttonsHtml = Array.from({ length: 10 }, (_, i) => {
+                const buttonsHtml = Array.from({ length: 20 }, (_, i) => {
                     const number = i + 1;
-                    // Skip excluded button numbers completely
                     if (excludedButtons.includes(number)) {
-                        return ''; // Return empty string for excluded button
+                        return '';
                     }
                     
                     const nameKey = `telecaller${getNumberWord(number)}`;
@@ -1415,7 +1414,7 @@
                             </button>
                         </div>
                     `;
-                }).filter(html => html !== '').join(''); // Filter out empty strings
+                }).filter(html => html !== '').join('');
                 
                 telecallerModal.innerHTML = `
                     ${editStyles}
@@ -1710,4 +1709,3 @@
     </footer>
 </body>
 </html>
-
