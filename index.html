@@ -740,6 +740,12 @@
             })
             .catch(error => console.error('Error pre-fetching names:', error));
 
+        // Add this right after Firebase initialization
+        const DEFAULT_TELECALLER_NAMES = {};
+        for(let i = 1; i <= 20; i++) {
+            DEFAULT_TELECALLER_NAMES[`telecaller${getNumberWord(i)}`] = `Telecaller ${i}`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const quotes = [
                 "Build your dreams, one property at a time.",
@@ -773,12 +779,13 @@
             let currentRole = '';
 
             telecallerBtn.addEventListener('click', function() {
-                const excludedButtons = []; // Add any numbers you want to exclude here, e.g., [7, 3, 5]
+                // Show modal immediately with default names
                 const telecallerModal = document.createElement('div');
                 telecallerModal.className = 'modal';
                 telecallerModal.style.display = 'block';
                 
-                // Initially show default names
+                const excludedButtons = []; // Add any numbers you want to exclude here
+                
                 telecallerModal.innerHTML = `
                     ${editStyles}
                     <div class="modal-content">
@@ -787,10 +794,10 @@
                         </button>
                         <h2>Select Telecaller</h2>
                         <div style="display: flex; flex-direction: column; gap: 20px;" id="telecallerButtonsContainer">
-                            ${Array.from({ length: 10 }, (_, i) => {
+                            ${Array.from({ length: 20 }, (_, i) => {
                                 const number = i + 1;
-                                // Skip any excluded button numbers
                                 if (excludedButtons.includes(number)) return '';
+                                
                                 return `
                                     <div class="manager-button-container">
                                         <button id="telecaller${number}Btn" class="manager-btn">
@@ -799,53 +806,63 @@
                                         </button>
                                     </div>
                                 `;
-                            }).filter(button => button !== '').join('')}
+                            }).join('')}
                         </div>
                     </div>
                 `;
                 
                 document.body.appendChild(telecallerModal);
 
-                // Add click handlers only for non-excluded buttons
-                for(let i = 1; i <= 10; i++) {
+                // Add click handlers immediately
+                for(let i = 1; i <= 20; i++) {
                     if (!excludedButtons.includes(i)) {
                         const button = document.getElementById(`telecaller${i}Btn`);
                         if (button) {
                             button.addEventListener('click', () => {
                                 const telecallerEmail = `telecaller${i}@gmail.com`;
                                 localStorage.setItem('telecallerEmail', telecallerEmail);
-                                window.open('dialpad.html', '_blank');
+                                
+                                // Open dialpad immediately
+                                const dialpadWindow = window.open('dialpad.html', '_blank');
                                 
                                 // Authenticate in background
                                 firebase.auth().signInWithEmailAndPassword(telecallerEmail, 'telecaller@123')
-                                    .catch(error => console.error('Auth error:', error));
-                                
-                                telecallerModal.remove();
+                                    .then(() => {
+                                        telecallerModal.remove();
+                                    })
+                                    .catch(error => {
+                                        console.error('Auth error:', error);
+                                        dialpadWindow.close();
+                                        alert("Authentication failed. Please try again.");
+                                    });
                             });
                         }
                     }
                 }
 
-                telecallerModal.querySelector('.back-button').addEventListener('click', () => 
-                    telecallerModal.remove()
-                );
+                // Add back button handler
+                telecallerModal.querySelector('.back-button').addEventListener('click', () => {
+                    telecallerModal.remove();
+                });
 
-                // Real-time listener for name updates (excluding excluded buttons)
-                firebase.database().ref('telecallerNames').on('value', (snapshot) => {
-                    const names = snapshot.val() || {};
-                    // Update each name span with the Firebase data
-                    for(let i = 1; i <= 10; i++) {
-                        if (!excludedButtons.includes(i)) {
-                            const nameSpan = document.getElementById(`telecallerName${i}`);
-                            if (nameSpan) {
-                                const nameKey = `telecaller${getNumberWord(i)}`; // e.g., telecallerOne, telecallerTwo
-                                if (names[nameKey]) {
-                                    nameSpan.textContent = names[nameKey];
+                // Fetch actual names in background and update UI
+                namesRef.once('value')
+                    .then(snapshot => {
+                        const actualNames = snapshot.val() || {};
+                        for(let i = 1; i <= 20; i++) {
+                            const nameElement = document.getElementById(`telecallerName${i}`);
+                            if (nameElement) {
+                                const nameKey = `telecaller${getNumberWord(i)}`;
+                                if (actualNames[nameKey]) {
+                                    nameElement.textContent = actualNames[nameKey];
                                 }
                             }
                         }
-                    }
-                });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching names:', error);
+                        // Continue with default names if fetch fails
+                    });
             });
 
             marketingManagerBtn.addEventListener('click', function() {
@@ -900,7 +917,7 @@
                                 </button>
                                 <h2>Select Telecaller</h2>
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
-                                    ${Array.from({ length: 10 }, (_, i) => {
+                                    ${Array.from({ length: 20 }, (_, i) => { // Changed from 10 to 20
                                         const number = i + 1;
                                         if (excludedButtons.includes(number)) return '';
                                         
@@ -934,7 +951,7 @@
                         });
 
                         // Make names editable
-                        for(let i = 1; i <= 10; i++) {
+                        for(let i = 1; i <= 20; i++) { // Changed from 10 to 20
                             if (!excludedButtons.includes(i)) {
                                 makeEditable(`admin${i}Name`, `editAdmin${i}`);
                             }
@@ -944,7 +961,7 @@
                         managerModal.querySelector('.save-button').addEventListener('click', async () => {
                             try {
                                 const updatedNames = {};
-                                for(let i = 1; i <= 10; i++) {
+                                for(let i = 1; i <= 20; i++) { // Changed from 10 to 20
                                     if (!excludedButtons.includes(i)) {
                                         const nameElement = document.getElementById(`admin${i}Name`);
                                         if (nameElement) {
@@ -961,7 +978,7 @@
                         });
 
                         // Add click handlers for admin buttons
-                        for(let i = 1; i <= 10; i++) {
+                        for(let i = 1; i <= 20; i++) { // Changed from 10 to 20
                             if (!excludedButtons.includes(i)) {
                                 const button = document.getElementById(`admin${i}Btn`);
                                 if (button) {
@@ -1397,7 +1414,7 @@
                 const names = cachedNames || {};
                 
                 // Filter out excluded buttons before creating HTML
-                const buttonsHtml = Array.from({ length: 20 }, (_, i) => {
+                const buttonsHtml = Array.from({ length: 20 }, (_, i) => { // Changed from 10 to 20
                     const number = i + 1;
                     if (excludedButtons.includes(number)) {
                         return '';
@@ -1437,7 +1454,7 @@
                 });
 
                 // Optimize button click handlers
-                for(let i = 1; i <= 10; i++) {
+                for(let i = 1; i <= 20; i++) { // Changed from 10 to 20
                     if (!excludedButtons.includes(i)) {
                         const button = document.getElementById(`telecaller${i}Btn`);
                         if (button) {
@@ -1709,4 +1726,3 @@
     </footer>
 </body>
 </html>
-
