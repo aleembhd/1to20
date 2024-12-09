@@ -1397,81 +1397,88 @@
             }
 
             function showTelecallerSelectionModal() {
-                const telecallerModal = document.createElement('div');
-                telecallerModal.className = 'modal';
-                telecallerModal.style.display = 'block';
-                
-                const excludedButtons = []; // Button to exclude
-                
-                // Use cached names or empty object if cache not ready
-                const names = cachedNames || {};
-                
-                // Filter out excluded buttons before creating HTML
-                const buttonsHtml = Array.from({ length: 20 }, (_, i) => { // Changed from 10 to 20
-                    const number = i + 1;
-                    if (excludedButtons.includes(number)) {
-                        return '';
-                    }
-                    
-                    const nameKey = `telecaller${getNumberWord(number)}`;
-                    const storedName = names[nameKey] || `Telecaller ${number}`;
-                    
-                    return `
-                        <div class="manager-button-container">
-                            <button id="telecaller${number}Btn" class="manager-btn">
-                                <span class="button-number">${number}.</span>
-                                <span>${storedName}</span>
-                            </button>
-                        </div>
-                    `;
-                }).filter(html => html !== '').join('');
-                
-                telecallerModal.innerHTML = `
-                    ${editStyles}
-                    <div class="modal-content">
-                        <button class="back-button" style="position: absolute; top: 15px; left: 15px; background: black; border: none; cursor: pointer; color: white; font-size: 16px; font-weight: 500; padding: 5px 10px; border-radius: 5px;">
-                            ← Back
-                        </button>
-                        <h2>Select Telecaller</h2>
-                        <div style="display: flex; flex-direction: column; gap: 20px;">
-                            ${buttonsHtml}
-                        </div>
-                    </div>
-                `;
-                
-                document.body.appendChild(telecallerModal);
+                // Refresh names from Firebase before showing modal
+                namesRef.once('value')
+                    .then(snapshot => {
+                        cachedNames = snapshot.val() || {};
+                        
+                        const telecallerModal = document.createElement('div');
+                        telecallerModal.className = 'modal';
+                        telecallerModal.style.display = 'block';
+                        
+                        const excludedButtons = []; // Add any numbers you want to exclude
+                        
+                        // Create buttons for all 20 telecallers
+                        const buttonsHtml = Array.from({ length: 20 }, (_, i) => {
+                            const number = i + 1;
+                            if (excludedButtons.includes(number)) {
+                                return '';
+                            }
+                            
+                            const nameKey = `telecaller${getNumberWord(number)}`;
+                            const storedName = cachedNames[nameKey] || `Telecaller ${number}`;
+                            
+                            return `
+                                <div class="manager-button-container">
+                                    <button id="telecaller${number}Btn" class="manager-btn">
+                                        <span class="button-number">${number}.</span>
+                                        <span>${storedName}</span>
+                                    </button>
+                                </div>
+                            `;
+                        }).filter(html => html !== '').join('');
+                        
+                        telecallerModal.innerHTML = `
+                            ${editStyles}
+                            <div class="modal-content">
+                                <button class="back-button" style="position: absolute; top: 15px; left: 15px; background: black; border: none; cursor: pointer; color: white; font-size: 16px; font-weight: 500; padding: 5px 10px; border-radius: 5px;">
+                                ← Back
+                                </button>
+                                <h2>Select Telecaller</h2>
+                                <div style="display: flex; flex-direction: column; gap: 20px;">
+                                    ${buttonsHtml}
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(telecallerModal);
 
-                // Add event listeners
-                telecallerModal.querySelector('.back-button').addEventListener('click', () => {
-                    telecallerModal.remove();
-                });
+                        // Add back button handler
+                        telecallerModal.querySelector('.back-button').addEventListener('click', () => {
+                            telecallerModal.remove();
+                        });
 
-                // Optimize button click handlers
-                for(let i = 1; i <= 20; i++) { // Changed from 10 to 20
-                    if (!excludedButtons.includes(i)) {
-                        const button = document.getElementById(`telecaller${i}Btn`);
-                        if (button) {
-                            button.addEventListener('click', () => {
-                                const telecallerEmail = `telecaller${i}@gmail.com`;
-                                localStorage.setItem('telecallerEmail', telecallerEmail);
-                                
-                                // Open dialpad first
-                                const dialpadWindow = window.open('dialpad.html', '_blank');
-                                
-                                // Then authenticate in background
-                                firebase.auth().signInWithEmailAndPassword(telecallerEmail, 'telecaller@123')
-                                    .then(() => {
-                                        telecallerModal.remove();
-                                    })
-                                    .catch(error => {
-                                        console.error('Auth error:', error);
-                                        dialpadWindow.close();
-                                        alert("Authentication failed. Please try again.");
+                        // Add click handlers for all 20 telecaller buttons
+                        for(let i = 1; i <= 20; i++) {
+                            if (!excludedButtons.includes(i)) {
+                                const button = document.getElementById(`telecaller${i}Btn`);
+                                if (button) {
+                                    button.addEventListener('click', () => {
+                                        const telecallerEmail = `telecaller${i}@gmail.com`;
+                                        localStorage.setItem('telecallerEmail', telecallerEmail);
+                                        
+                                        // Open dialpad first
+                                        const dialpadWindow = window.open('dialpad.html', '_blank');
+                                        
+                                        // Then authenticate in background
+                                        firebase.auth().signInWithEmailAndPassword(telecallerEmail, 'telecaller@123')
+                                            .then(() => {
+                                                telecallerModal.remove();
+                                            })
+                                            .catch(error => {
+                                                console.error('Auth error:', error);
+                                                dialpadWindow.close();
+                                                alert("Authentication failed. Please try again.");
+                                            });
                                     });
-                            });
+                                }
+                            }
                         }
-                    }
-                }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching names:', error);
+                        alert('Failed to load telecaller names. Please try again.');
+                    });
             }
         });
 
